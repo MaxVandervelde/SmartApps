@@ -1,4 +1,3 @@
-SmartApps
-=========
+# Pieces029's SmartApps
 
-My SmartApps I have created
+SmartApps I have created for [SmartThings](https://graph.api.smartthings.com/)
