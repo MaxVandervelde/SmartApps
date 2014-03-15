@@ -17,6 +17,7 @@
 /**
  * Jenkins Notifier
  *
+ * Checks a Jenkins server at a specific time, if the build fails it will turn on a light   
  */
 preferences {
     section("The URL to your Jenkins, includeing the job you want to monitor. Ex. https://jenkins.example.com/job/myproject/"){
