@@ -17,20 +17,31 @@
 /**
  * Jenkins Notifier
  *
- * Checks a Jenkins server at a specific time, if the build fails it will turn on a light   
+ * Checks a Jenkins server at a specific time, if the build fails it will turn on a light.  If the build goes from
+ * failing back to succeeding the light will turn off. Hues can also be used in place of the light in order to create
+ * colors for build statuses
  */
+def HUE_COLORS = [Red: 0, Green: 39, Blue: 70, Yellow: 25, Orange: 10, Purple: 75, Pink: 83]
+
 preferences {
-    section("The URL to your Jenkins, includeing the job you want to monitor. Ex. https://jenkins.example.com/job/myproject/"){
+    section("The URL to your Jenkins, including the job you want to monitor. Ex. https://jenkins.example.com/job/myproject/") {
         input "jenkinsUrl", "text", title: "Jenkins URL"
     }
-    section("Jenkins Username"){
+    section("Jenkins Username") {
         input "jenkinsUsername", "text", title: "Jenkins Username"
     }
-    section("Jenkins Password"){
+    section("Jenkins Password") {
         input "jenkinsPassword", "password", title: "Jenkins Password"
     }
-    section("On Fialed Build Turn On...") {
-        input "switches", "capability.switch", multiple: true
+    section("On Failed Build Turn On...") {
+        input "switches", "capability.switch", multiple: true, required: false
+    }
+    section("Or Change These Bulbs...") {
+        input "hues", "capability.colorControl", title: "Which Hue Bulbs?", required: false, multiple: true
+        input "colorSuccess", "enum", title: "Hue Color On Success?", required: false, multiple: false, options: HUE_COLORS.keySet() as String[]
+        input "colorFail", "enum", title: "Hue Color On Fail?", required: false, multiple: false, options: HUE_COLORS.keySet() as String[]
+        input "lightLevelSuccess", "number", title: "Light Level On Success?", required: false
+        input "lightLevelFail", "number", title: "Light Level On Fail?", required: false
     }
     section("Additional settings", hideable: true, hidden: true) {
         paragraph("Default check time is 15 Minutes")
@@ -51,13 +62,21 @@ def updated() {
 }
 
 def initialize() {
+    // Because I can't figure out how to do constants...
+    def HUE_COLORS = [Red: 0, Green: 39, Blue: 70, Yellow: 25, Orange: 10, Purple: 75, Pink: 83]
+    def HUE_SATURATION = 100
     subscribe(app)
-    checkServer()
-    def cron = "* /${refreshInterval?:15} * * * ?"
+    log.debug "COLORS ${HUE_COLORS}"
+    log.debug "colorSuccess: ${colorSuccess}, colorFail: ${colorFail}"
+    def successColor = [hue: HUE_COLORS[colorSuccess], saturation: HUE_SATURATION, level: lightLevelSuccess ?: 100]
+    def failColor = [hue: HUE_COLORS[colorFail], saturation: HUE_SATURATION, level: lightLevelFail ?: 100]
+    log.debug "successColor: ${successColor}, failColor: ${failColor}"
+    checkServer(successColor, failColor)
+    def cron = "* /${refreshInterval ?: 15} * * * ?"
     schedule(cron, checkServer)
 }
 
-def checkServer() {
+def checkServer(successColor, failColor) {
     log.debug "Checking Server Now"
 
     def basicCredentials = "${jenkinsUsername}:${jenkinsPassword}"
@@ -68,13 +87,19 @@ def checkServer() {
 
     log.debug "Auth ${head}"
 
-    httpGet(uri: jenkinsUrl, headers: ["Authorization": "${basicAuth}"]) { resp ->
+    def host = jenkinsUrl.contains("lastBuild/api/json") ? jenkinsUrl : "${jenkinsUrl}/lastBuild/api/json"
+
+    httpGet(uri: host, headers: ["Authorization": "${basicAuth}"]) { resp ->
         def buildSuccess = (resp.data.result == "SUCCESS")
-        log.debug buildSuccess
+        log.debug "Build Success? ${buildSuccess}"
         if (!buildSuccess) {
             switches?.on()
-        } else{
+            hues?.on()
+            hues?.setColor(failColor)
+        } else {
             switches?.off()
+            hues?.off()
+            hues?.setColor(successColor)
         }
 
     }
