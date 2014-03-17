@@ -98,11 +98,11 @@ def checkServer() {
         def buildSuccess = (resp.data.result == "SUCCESS")
         log.debug "Build Success? ${buildSuccess}"
         if (!buildSuccess) {
-            switches?.off()
+            switches?.on()
             hues?.on()
             hues?.setColor(failColor)
         } else {
-            switches?.on()
+            switches?.off()
             hues?.on()
             hues?.setColor(successColor)
         }
