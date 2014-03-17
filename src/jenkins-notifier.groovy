@@ -68,8 +68,8 @@ def initialize() {
     
     def successColor = [hue: HUE_COLORS[colorSuccess], saturation: HUE_SATURATION, level: lightLevelSuccess ?: 100]
     def failColor = [hue: HUE_COLORS[colorFail], saturation: HUE_SATURATION, level: lightLevelFail ?: 100]
-    settings.successColor = successColor
-    settings.failColor = failColor
+    state.successColor = successColor
+    state.failColor = failColor
     log.debug "successColor: ${successColor}, failColor: ${failColor}"
     
     checkServer()
@@ -81,8 +81,8 @@ def initialize() {
 def checkServer() {
     log.debug "Checking Server Now"
 
-	def successColor = settings.successColor
-    def failColor = settings.failColor
+	def successColor = state.successColor
+    def failColor = state.failColor
 
     def basicCredentials = "${jenkinsUsername}:${jenkinsPassword}"
     def encodedCredentials = basicCredentials.encodeAsBase64().toString()
