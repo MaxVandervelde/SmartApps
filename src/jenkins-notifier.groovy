@@ -62,22 +62,27 @@ def updated() {
 }
 
 def initialize() {
-    // Because I can't figure out how to do constants...
-    def HUE_COLORS = [Red: 0, Green: 39, Blue: 70, Yellow: 25, Orange: 10, Purple: 75, Pink: 83]
+	// Because I can't figure out how to do constants...
+	def HUE_COLORS = [Red: 0, Green: 39, Blue: 70, Yellow: 25, Orange: 10, Purple: 75, Pink: 83]
     def HUE_SATURATION = 100
-    subscribe(app)
-    log.debug "COLORS ${HUE_COLORS}"
-    log.debug "colorSuccess: ${colorSuccess}, colorFail: ${colorFail}"
+    
     def successColor = [hue: HUE_COLORS[colorSuccess], saturation: HUE_SATURATION, level: lightLevelSuccess ?: 100]
     def failColor = [hue: HUE_COLORS[colorFail], saturation: HUE_SATURATION, level: lightLevelFail ?: 100]
+    settings.successColor = successColor
+    settings.failColor = failColor
     log.debug "successColor: ${successColor}, failColor: ${failColor}"
-    checkServer(successColor, failColor)
+    
+    checkServer()
+    
     def cron = "* /${refreshInterval ?: 15} * * * ?"
     schedule(cron, checkServer)
 }
 
-def checkServer(successColor, failColor) {
+def checkServer() {
     log.debug "Checking Server Now"
+
+	def successColor = settings.successColor
+    def failColor = settings.failColor
 
     def basicCredentials = "${jenkinsUsername}:${jenkinsPassword}"
     def encodedCredentials = basicCredentials.encodeAsBase64().toString()
@@ -87,18 +92,18 @@ def checkServer(successColor, failColor) {
 
     log.debug "Auth ${head}"
 
-    def host = jenkinsUrl.contains("lastBuild/api/json") ? jenkinsUrl : "${jenkinsUrl}/lastBuild/api/json"
+	def host = jenkinsUrl.contains("lastBuild/api/json") ? jenkinsUrl : "${jenkinsUrl}/lastBuild/api/json"
 
     httpGet(uri: host, headers: ["Authorization": "${basicAuth}"]) { resp ->
         def buildSuccess = (resp.data.result == "SUCCESS")
         log.debug "Build Success? ${buildSuccess}"
         if (!buildSuccess) {
-            switches?.on()
+            switches?.off()
             hues?.on()
             hues?.setColor(failColor)
         } else {
-            switches?.off()
-            hues?.off()
+            switches?.on()
+            hues?.on()
             hues?.setColor(successColor)
         }
 
