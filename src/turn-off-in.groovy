@@ -42,7 +42,6 @@ def initialized () {
     def offTime = offTimeHr * 60 * 60 + offTimeMin * 60
     log.debug "timer set to ${offTime} minutes"
     runIn(offTime, "startTimerCallback")
-    subscribe(app)
 }
 
 def updated(settings) {
