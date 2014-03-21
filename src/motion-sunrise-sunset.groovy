@@ -55,11 +55,8 @@ def initialize() {
 def motionHandler(evt) {
     def othersActive = motionDevices.find { it.id != evt.deviceId && it.currentValue("motion") == "active" } != null
     if (!othersActive) {
-        log.debug "there"
         def anyOff = switches?.find { it.currentValue("switch") != "on" }
-        log.debug "balls"
         if (evt.value == "active" && anyOff) {
-            log.debug "butts"
             if (shouldTurnOn()) {
                 switches?.on()
             }
