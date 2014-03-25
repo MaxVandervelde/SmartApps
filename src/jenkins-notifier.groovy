@@ -75,14 +75,14 @@ int getMaxLevel() {
 }
 
 def initialize() {
-    def successColor = [hue: getHueColors()[colorSuccess], saturation: getSaturation(), level: lightLevelSuccess ?: getMaxLevel()]
-    def failColor = [hue: getHueColors()[colorFail], saturation: getSaturation(), level: lightLevelFail ?: getMaxLevel()]
+    def successColor = [switch: "on", hue: getHueColors()[colorSuccess], saturation: getSaturation(), level: lightLevelSuccess ?: getMaxLevel()]
+    def failColor = [switch: "on", hue: getHueColors()[colorFail], saturation: getSaturation(), level: lightLevelFail ?: getMaxLevel()]
     state.successColor = successColor
     state.failColor = failColor
     log.debug "successColor: ${successColor}, failColor: ${failColor}"
-    
+
     checkServer()
-    
+
     def cron = "* /${refreshInterval ?: 15} * * * ?"
     schedule(cron, checkServer)
 }
@@ -90,7 +90,7 @@ def initialize() {
 def checkServer() {
     log.debug "Checking Server Now"
 
-	def successColor = state.successColor
+    def successColor = state.successColor
     def failColor = state.failColor
 
     def basicCredentials = "${jenkinsUsername}:${jenkinsPassword}"
@@ -101,18 +101,16 @@ def checkServer() {
 
     log.debug "Auth ${head}"
 
-	def host = jenkinsUrl.contains("lastBuild/api/json") ? jenkinsUrl : "${jenkinsUrl}/lastBuild/api/json"
+    def host = jenkinsUrl.contains("lastBuild/api/json") ? jenkinsUrl : "${jenkinsUrl}/lastBuild/api/json"
 
     httpGet(uri: host, headers: ["Authorization": "${basicAuth}"]) { resp ->
         def buildSuccess = (resp.data.result == "SUCCESS")
         log.debug "Build Success? ${buildSuccess}"
         if (!buildSuccess) {
             switches?.on()
-            hues?.on()
             hues?.setColor(failColor)
         } else {
             switches?.off()
-            hues?.on()
             hues?.setColor(successColor)
         }
 
