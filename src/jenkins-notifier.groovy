@@ -21,8 +21,6 @@
  * failing back to succeeding the light will turn off. Hues can also be used in place of the light in order to create
  * colors for build statuses
  */
-def HUE_COLORS = [Red: 0, Green: 39, Blue: 70, Yellow: 25, Orange: 10, Purple: 75, Pink: 83]
-
 preferences {
     section("The URL to your Jenkins, including the job you want to monitor. Ex. https://jenkins.example.com/job/myproject/") {
         input "jenkinsUrl", "text", title: "Jenkins URL"
@@ -38,8 +36,8 @@ preferences {
     }
     section("Or Change These Bulbs...") {
         input "hues", "capability.colorControl", title: "Which Hue Bulbs?", required: false, multiple: true
-        input "colorSuccess", "enum", title: "Hue Color On Success?", required: false, multiple: false, options: HUE_COLORS.keySet() as String[]
-        input "colorFail", "enum", title: "Hue Color On Fail?", required: false, multiple: false, options: HUE_COLORS.keySet() as String[]
+        input "colorSuccess", "enum", title: "Hue Color On Success?", required: false, multiple: false, options: getHueColors().keySet() as String[]
+        input "colorFail", "enum", title: "Hue Color On Fail?", required: false, multiple: false, options: getHueColors().keySet() as String[]
         input "lightLevelSuccess", "number", title: "Light Level On Success?", required: false
         input "lightLevelFail", "number", title: "Light Level On Fail?", required: false
     }
@@ -61,13 +59,24 @@ def updated() {
     initialize()
 }
 
+/** Constants for Hue Colors */
+Map getHueColors() {
+    return [Red: 0, Green: 39, Blue: 70, Yellow: 25, Orange: 10, Purple: 75, Pink: 83]
+}
+
+/** Constant for Saturation */
+int getSaturation() {
+    return 100;
+}
+
+/** Constant for Level */
+int getMaxLevel() {
+    return 100;
+}
+
 def initialize() {
-	// Because I can't figure out how to do constants...
-	def HUE_COLORS = [Red: 0, Green: 39, Blue: 70, Yellow: 25, Orange: 10, Purple: 75, Pink: 83]
-    def HUE_SATURATION = 100
-    
-    def successColor = [hue: HUE_COLORS[colorSuccess], saturation: HUE_SATURATION, level: lightLevelSuccess ?: 100]
-    def failColor = [hue: HUE_COLORS[colorFail], saturation: HUE_SATURATION, level: lightLevelFail ?: 100]
+    def successColor = [hue: getHueColors()[colorSuccess], saturation: getSaturation(), level: lightLevelSuccess ?: getMaxLevel()]
+    def failColor = [hue: getHueColors()[colorFail], saturation: getSaturation(), level: lightLevelFail ?: getMaxLevel()]
     state.successColor = successColor
     state.failColor = failColor
     log.debug "successColor: ${successColor}, failColor: ${failColor}"
