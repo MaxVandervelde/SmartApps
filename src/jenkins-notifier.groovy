@@ -31,9 +31,6 @@ preferences {
     section("Jenkins Password") {
         input "jenkinsPassword", "password", title: "Jenkins Password"
     }
-    section("On Failed Build Turn On...") {
-        input "switches", "capability.switch", multiple: true, required: false
-    }
     section("Or Change These Bulbs...") {
         input "hues", "capability.colorControl", title: "Which Hue Bulbs?", required: false, multiple: true
         input "colorSuccess", "enum", title: "Hue Color On Success?", required: false, multiple: false, options: getHueColors().keySet() as String[]
@@ -80,8 +77,9 @@ int getMaxLevel() {
 }
 
 def initialize() {
-    def successColor = getHueColors()[colorSuccess] + [switch: "on", level: lightLevelSuccess ?: getMaxLevel()]
-    def failColor = getHueColors()[colorFail] + [switch: "on", level: lightLevelFail ?: getMaxLevel()]
+    state.previousFailure = false
+    def successColor = getHueColors()[colorSuccess] + [level: lightLevelSuccess ?: getMaxLevel()]
+    def failColor = getHueColors()[colorFail] + [level: lightLevelFail ?: getMaxLevel()]
     state.successColor = successColor
     state.failColor = failColor
     log.debug "successColor: ${successColor}, failColor: ${failColor}"
@@ -112,11 +110,14 @@ def checkServer() {
         def buildSuccess = (resp.data.result == "SUCCESS")
         log.debug "Build Success? ${buildSuccess}"
         if (!buildSuccess) {
-            switches?.on()
-            hues?.setColor(failColor)
+            state.previousFailure = true;
+            hues*.setColor(failColor)
         } else {
-            switches?.off()
-            hues?.setColor(successColor)
+            if (!state.previousFailure) {
+                return
+            }
+            state.previousFailure = false;
+            hues*.setColor(successColor)
         }
 
     }
