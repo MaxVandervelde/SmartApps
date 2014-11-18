@@ -61,12 +61,17 @@ def updated() {
 
 /** Constants for Hue Colors */
 Map getHueColors() {
-    return [Red: 0, Green: 39, Blue: 70, Yellow: 25, Orange: 10, Purple: 75, Pink: 83]
-}
-
-/** Constant for Saturation */
-int getSaturation() {
-    return 100;
+    return [
+        Red: [hue: 100, saturation: 100],
+        Green: [hue: 39, saturation: 100],
+        Blue: [hue: 70, saturation: 100],
+        Yellow: [hue: 25, saturation: 100],
+        Orange: [hue: 10, saturation: 100],
+        Purple: [hue: 75, saturation: 100],
+        Pink: [hue: 83, saturation: 100],
+        SoftWhite: [hue: 23, saturation: 56],
+        Daylight: [hue: 53, saturation: 91]
+    ]
 }
 
 /** Constant for Level */
@@ -75,8 +80,8 @@ int getMaxLevel() {
 }
 
 def initialize() {
-    def successColor = [switch: "on", hue: getHueColors()[colorSuccess], saturation: getSaturation(), level: lightLevelSuccess ?: getMaxLevel()]
-    def failColor = [switch: "on", hue: getHueColors()[colorFail], saturation: getSaturation(), level: lightLevelFail ?: getMaxLevel()]
+    def successColor = getHueColors()[colorSuccess] + [switch: "on", level: lightLevelSuccess ?: getMaxLevel()]
+    def failColor = getHueColors()[colorFail] + [switch: "on", level: lightLevelFail ?: getMaxLevel()]
     state.successColor = successColor
     state.failColor = failColor
     log.debug "successColor: ${successColor}, failColor: ${failColor}"
