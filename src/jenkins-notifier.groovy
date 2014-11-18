@@ -21,6 +21,17 @@
  * failing back to succeeding the light will turn off. Hues can also be used in place of the light in order to create
  * colors for build statuses
  */
+
+// Automatically generated. Make future change here.
+definition(
+    name: "Jenkins Notifier",
+    namespace: "com.andrewreitz.smartapps.jenkinsnotifier",
+    author: "Maxwell Vandervelde",
+    description: "Notifies jenkins build failures through a hue bulb",
+    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
+    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
+    iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
+
 preferences {
     section("The URL to your Jenkins, including the job you want to monitor. Ex. https://jenkins.example.com/job/myproject/") {
         input "jenkinsUrl", "text", title: "Jenkins URL"
@@ -34,8 +45,10 @@ preferences {
     section("Or Change These Bulbs...") {
         input "hues", "capability.colorControl", title: "Which Hue Bulbs?", required: false, multiple: true
         input "colorSuccess", "enum", title: "Hue Color On Success?", required: false, multiple: false, options: getHueColors().keySet() as String[]
+        input "colorIndeterminate", "enum", title: "Hue Color On Indeterminate?", required: false, multiple: false, options: getHueColors().keySet() as String[]
         input "colorFail", "enum", title: "Hue Color On Fail?", required: false, multiple: false, options: getHueColors().keySet() as String[]
         input "lightLevelSuccess", "number", title: "Light Level On Success?", required: false
+        input "lightLevelIndeterminate", "number", title: "Light Level On Indeterminate?", required: false
         input "lightLevelFail", "number", title: "Light Level On Fail?", required: false
     }
     section("Additional settings", hideable: true, hidden: true) {
@@ -80,21 +93,20 @@ def initialize() {
     state.previousFailure = false
     def successColor = getHueColors()[colorSuccess] + [level: lightLevelSuccess ?: getMaxLevel()]
     def failColor = getHueColors()[colorFail] + [level: lightLevelFail ?: getMaxLevel()]
+    def indeterminateColor = getHueColors()[colorIndeterminate] + [level: lightLevelIndeterminate ?: getMaxLevel()]
     state.successColor = successColor
     state.failColor = failColor
-    log.debug "successColor: ${successColor}, failColor: ${failColor}"
+    state.indeterminateColor = indeterminateColor
+    log.debug "successColor: ${successColor}, failColor: ${failColor}, indeterminateColor: ${indeterminateColor}"
 
     checkServer()
 
-    def cron = "* /${refreshInterval ?: 15} * * * ?"
+    def cron = "*/${refreshInterval ?: 15} * * * * ?"
     schedule(cron, checkServer)
 }
 
 def checkServer() {
     log.debug "Checking Server Now"
-
-    def successColor = state.successColor
-    def failColor = state.failColor
 
     def basicCredentials = "${jenkinsUsername}:${jenkinsPassword}"
     def encodedCredentials = basicCredentials.encodeAsBase64().toString()
@@ -107,18 +119,30 @@ def checkServer() {
     def host = jenkinsUrl.contains("lastBuild/api/json") ? jenkinsUrl : "${jenkinsUrl}/lastBuild/api/json"
 
     httpGet(uri: host, headers: ["Authorization": "${basicAuth}"]) { resp ->
-        def buildSuccess = (resp.data.result == "SUCCESS")
-        log.debug "Build Success? ${buildSuccess}"
-        if (!buildSuccess) {
-            state.previousFailure = true;
-            hues*.setColor(failColor)
-        } else {
-            if (!state.previousFailure) {
-                return
-            }
-            state.previousFailure = false;
-            hues*.setColor(successColor)
+    
+        switch (resp.data.result) {
+            case "SUCCESS":
+                buildSuccess();
+                break;
+            case "FAILURE":
+                buildFailure();
+                break;
+            default:
+                hues*.setColor(state.indeterminateColor)
         }
 
     }
+}
+    
+private buildSuccess() {
+    if (!state.previousFailure) {
+        return
+    }
+    state.previousFailure = false;
+    hues*.setColor(state.successColor)
+}
+
+private buildFailure() {
+    state.previousFailure = true;
+    hues*.setColor(state.failColor);
 }
